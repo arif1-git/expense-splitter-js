@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>3 Friends Expense Splitter</title>
+  <style>
+    /* --- NEW COLOR PALETTE --- */
+    :root {
+      --bg: #1a1c2c; /* Softer, darker slate blue */
+      --card: #24273f;
+      --muted: #303456;
+      --text: #eaf0ff;
+      --text-dim: #a9b4d0;
+      --accent: #7b9aff;
+      --accent-2: #7affc1;
+      --danger: #ff6b6b;
+      --warning: #ffcc00;
+      --ok: #2ad38b;
+      --ring: 0 0 0 3px rgba(123, 154, 255, .35);
+      --radius: 16px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+      color: var(--text);
+      /* New, more subtle gradient */
+      background: linear-gradient(180deg, #1a1c2c, #121421);
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      backdrop-filter: blur(8px);
+      background: rgba(26, 28, 44, .7);
+      border-bottom: 1px solid rgba(255, 255, 255, .06);
+    }
+    .container{max-width:1100px; margin:0 auto; padding:16px;}
+    .topbar{display:flex; gap:12px; align-items:center; justify-content:space-between}
+    h1{font-size:22px; margin:0; letter-spacing:.3px}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      background:var(--muted); border:1px solid rgba(255,255,255,.08);
+      padding:8px 12px; border-radius:999px; color:var(--text-dim); font-size:14px;
+    }
+    .grid{
+      display:grid; grid-template-columns: 380px 1fr; gap:16px; margin-top:16px;
+    }
+    .card{
+      background:var(--card); border:1px solid rgba(255,255,255,.06); border-radius:var(--radius);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    .card h2{margin:0 0 8px; font-size:18px}
+    .card .body{padding:16px}
+    .row{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
+    .row3{display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px}
+    label{display:block; font-size:12px; color:var(--text-dim); margin-bottom:6px}
+    input, select, textarea{
+      width:100%; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.1);
+      background:#161827; color:var(--text); outline:none; font-size:14px;
+    }
+    input:focus, select:focus, textarea:focus{box-shadow:var(--ring); border-color:rgba(123, 154, 255, .6)}
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center; gap:8px;
+      padding:10px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.12); cursor:pointer;
+      background:linear-gradient(180deg, #303456, #282b49); color:var(--text); font-weight:600;
+    }
+    .btn:disabled{opacity:.6; cursor:not-allowed}
+    .btn.primary{background:linear-gradient(180deg, #5375ff, #3659e3); border-color:#3659e3}
+    .btn.danger{background:linear-gradient(180deg, #ff6161, #d93b3b); border-color:#d93b3b}
+    .btn.ghost{background:transparent}
+    .btnbar{display:flex; gap:8px; flex-wrap:wrap}
+
+    .summary{
+      display:grid; grid-template-columns: repeat(4, 1fr); gap:12px;
+    }
+    .kpi{
+      background:linear-gradient(180deg, #2c2f4a, #212438);
+      border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:12px;
+    }
+    .kpi .label{font-size:12px; color:var(--text-dim)}
+    .kpi .value{font-size:20px; font-weight:800; margin-top:4px}
+    .tag{font-size:11px; padding:2px 8px; border-radius:999px; background:rgba(255,255,255,.08); color:var(--text-dim)}
+    .flex{display:flex; align-items:center; gap:8px}
+
+    table{width:100%; border-collapse:separate; border-spacing:0;}
+    thead th{
+      position:sticky; top:0; background:linear-gradient(180deg, #24273f, #1e2133);
+      text-align:left; font-weight:600; font-size:12px; color:var(--text-dim);
+      border-bottom:1px solid rgba(255,255,255,.08); padding:10px;
+    }
+    tbody td{padding:10px; border-bottom:1px dashed rgba(255,255,255,.06); font-size:14px}
+    tbody tr:hover{background:rgba(255,255,255,.02)}
+    .tablewrap{max-height:520px; overflow:auto; border-radius:12px; border:1px solid rgba(255,255,255,.06)}
+
+    .balances{display:grid; grid-template-columns: repeat(3, 1fr); gap:10px}
+    .balance-card{background:linear-gradient(180deg, #2c2f4a, #212438); border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:12px}
+    .balance-card .name{font-weight:700}
+    .pos{color:var(--ok)}
+    .neg{color:var(--danger)}
+
+    .toolbar{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+    .spacer{flex:1}
+    .muted{color:var(--text-dim)}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+
+    .badge{font-size:11px; padding:4px 8px; border-radius:999px; background:rgba(123, 154, 255, .2); color:var(--accent)}
+
+    /* --- BASE RESPONSIVENESS --- */
+    @media (max-width: 900px){
+      .grid{grid-template-columns: 1fr}
+      .summary{grid-template-columns:1fr 1fr}
+      .balances{grid-template-columns:1fr}
+    }
+
+    /* --- ENHANCED MOBILE RESPONSIVENESS --- */
+    @media (max-width: 600px) {
+        .container {
+            padding: 10px; /* Less padding on small screens */
+        }
+        h1 {
+            font-size: 20px; /* Slightly smaller title */
+        }
+        .row3, .summary {
+            grid-template-columns: 1fr; /* Stack 3-col and summary items */
+        }
+        .toolbar {
+            flex-direction: column; /* Stack filter controls */
+            align-items: stretch;
+        }
+        .topbar {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+
+    /* Print */
+    @media print{
+      header,.no-print{display:none}
+      body{background:white; color:black}
+      .card{box-shadow:none; border:1px solid #ccc}
+      .kpi{background:white}
+      .balance-card{background:white}
+      .tablewrap{max-height:none; overflow:visible}
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    async function exportPdf() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('p', 'pt', 'a4');
+
+      // Capture whole main container
+      const el = document.querySelector('main');
+      const canvas = await html2canvas(el, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const imgProps = doc.getImageProperties(imgData);
+      const ratio = imgProps.width / imgProps.height;
+      const pdfHeight = pageWidth / ratio;
+
+      doc.addImage(imgData, 'PNG', 0, 0, pageWidth, pdfHeight);
+      doc.save(`expenses_${new Date().toISOString().slice(0, 7)}.pdf`);
+    }
+
+  </script>
+</head>
+<body>
+  <header>
+    <div class="container topbar">
+      <div class="flex">
+        <h1>3 Friends Expense Splitter</h1>
+        <span class="pill"><span class="badge">Offline</span> LocalStorage Based</span>
+      </div>
+      <div class="btnbar no-print">
+        <button class="btn" id="btnPrint" title="Print monthly report">🖨️ Print</button>
+        <button class="btn" id="btnExportCsv" title="Export filtered month to CSV">⬇️ Export CSV</button>
+        <button class="btn" id="btnExportJson" title="Export all data to JSON">⬇️ Export JSON</button>
+        <label class="btn" for="fileImport" title="Import JSON">⬆️ Import JSON</label>
+        <button class="btn" id="btnExportPdf" title="Export monthly report as PDF">📄 Export PDF</button>
+        <input type="file" id="fileImport" accept="application/json" style="display:none" />
+        <button class="btn danger" id="btnClearAll" title="Delete everything (careful!)">🗑️ Clear All</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="grid">
+      <section class="card">
+        <div class="body">
+          <h2>➕ Add / Edit Expense</h2>
+          <form id="formEntry" class="form" onsubmit="return false">
+            <div class="row">
+              <div>
+                <label for="date">Date</label>
+                <input type="date" id="date" required />
+              </div>
+              <div>
+                <label for="amount">Amount (₹)</label>
+                <input type="number" id="amount" inputmode="decimal" step="0.01" min="0.01" placeholder="0.00" required />
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label for="paidBy">Paid By</label>
+                <select id="paidBy" required></select>
+              </div>
+              <div>
+                <label for="category">Category</label>
+                <input type="text" id="category" placeholder="Food, Rent, Grocery…" />
+              </div>
+            </div>
+            <div>
+              <label for="desc">Description</label>
+              <input type="text" id="desc" placeholder="Short note (e.g., Kirana bill)" />
+            </div>
+            <div class="btnbar" style="margin-top:10px">
+              <button class="btn primary" id="btnSave">💾 Save Entry</button>
+              <button class="btn ghost" id="btnReset">↺ Reset</button>
+            </div>
+            <input type="hidden" id="editingId" />
+          </form>
+        </div>
+        <div class="body" style="border-top:1px solid rgba(255,255,255,.06)">
+          <h2>⚙️ Settings (Friend Names)</h2>
+          <div class="row3">
+            <div>
+              <label for="f1">Friend 1</label>
+              <input id="f1" placeholder="Friend 1" />
+            </div>
+            <div>
+              <label for="f2">Friend 2</label>
+              <input id="f2" placeholder="Friend 2" />
+            </div>
+            <div>
+              <label for="f3">Friend 3</label>
+              <input id="f3" placeholder="Friend 3" />
+            </div>
+          </div>
+          <div class="btnbar" style="margin-top:10px">
+            <button class="btn" id="btnSaveNames">✅ Save Names</button>
+            <span class="muted" style="font-size:12px;display:block;margin-top:4px;">Names are saved locally in your browser.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="body">
+          <div class="toolbar">
+            <h2>📊 Monthly Summary</h2>
+            <div class="spacer"></div>
+            <label>
+              <span class="muted" style="font-size:12px">Month</span>
+              <input type="month" id="monthPicker" />
+            </label>
+            <label>
+              <span class="muted" style="font-size:12px">Search</span>
+              <input type="text" id="search" placeholder="Find by text/category" />
+            </label>
+            <label>
+              <span class="muted" style="font-size:12px">Paid By</span>
+              <select id="filterPaidBy"></select>
+            </label>
+          </div>
+          <div class="summary" style="margin-top:12px">
+            <div class="kpi"><div class="label">Total Spend</div><div class="value" id="kpiTotal">—</div></div>
+            <div class="kpi"><div class="label">Equal Share (÷3)</div><div class="value" id="kpiShare">—</div></div>
+            <div class="kpi"><div class="label">Entries in Month</div><div class="value" id="kpiCount">0</div></div>
+            <div class="kpi"><div class="label">Last Updated</div><div class="value" id="kpiUpdated">—</div></div>
+          </div>
+        </div>
+
+        <div class="body" style="border-top:1px solid rgba(255,255,255,.06)">
+          <h3 style="margin:0 0 8px">Balances</h3>
+          <div class="balances" id="balances"></div>
+          <div id="settlements" style="margin-top:8px" class="muted"></div>
+        </div>
+
+        <div class="body" style="border-top:1px solid rgba(255,255,255,.06)">
+          <div class="toolbar">
+            <h3 style="margin:0">All Expenses (Filtered)</h3>
+            <div class="spacer"></div>
+            <label>
+              <span class="muted" style="font-size:12px">Sort</span>
+              <select id="sort">
+                <option value="date-desc">Date ↓</option>
+                <option value="date-asc">Date ↑</option>
+                <option value="amount-desc">Amount ↓</option>
+                <option value="amount-asc">Amount ↑</option>
+              </select>
+            </label>
+          </div>
+          <div class="tablewrap" style="margin-top:8px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Description</th>
+                  <th>Category</th>
+                  <th>Paid By</th>
+                  <th class="mono">Amount (₹)</th>
+                  <th class="no-print">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <template id="rowTemplate">
+    <tr>
+      <td class="mono" data-col="date"></td>
+      <td data-col="desc"></td>
+      <td data-col="cat"></td>
+      <td data-col="by"></td>
+      <td class="mono" data-col="amt" style="font-weight:700"></td>
+      <td class="no-print" data-col="actions"></td>
+    </tr>
+  </template>
+
+  <script>
+    // ---------- Utilities ----------
+    const fmt = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 });
+    const toPaise = (val) => Math.round(parseFloat(val) * 100);
+    const fromPaise = (p) => (p / 100);
+    const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+    const store = {
+      get names() {
+        let n = JSON.parse(localStorage.getItem('friendNames') || 'null');
+        if (!n || n.length !== 3) n = ['Friend 1', 'Friend 2', 'Friend 3'];
+        return n;
+      },
+      set names(n) { localStorage.setItem('friendNames', JSON.stringify(n)); },
+      get expenses() { return JSON.parse(localStorage.getItem('expenses') || '[]'); },
+      set expenses(list) { localStorage.setItem('expenses', JSON.stringify(list)); localStorage.setItem('updatedAt', new Date().toISOString()); },
+      get updatedAt() { return localStorage.getItem('updatedAt'); }
+    };
+
+    // ---------- State ----------
+    const state = {
+      filterMonth: '', // YYYY-MM
+      search: '',
+      paidBy: 'all',
+      sort: 'date-desc'
+    };
+
+    // ---------- Init ----------
+    function init() {
+      // default date & month
+      const today = new Date();
+      $('#date').valueAsDate = today;
+      const ym = today.toISOString().slice(0, 7);
+      $('#monthPicker').value = ym;
+      state.filterMonth = ym;
+
+      // load names into inputs and selects
+      const [n1, n2, n3] = store.names;
+      $('#f1').value = n1; $('#f2').value = n2; $('#f3').value = n3;
+      refreshNameSelects();
+
+      // listeners
+      $('#btnSave').addEventListener('click', onSaveEntry);
+      $('#btnReset').addEventListener('click', resetForm);
+      $('#btnSaveNames').addEventListener('click', saveNames);
+      $('#monthPicker').addEventListener('change', e => { state.filterMonth = e.target.value; render(); });
+      $('#search').addEventListener('input', e => { state.search = e.target.value.toLowerCase(); renderTable(); });
+      $('#filterPaidBy').addEventListener('change', e => { state.paidBy = e.target.value; renderTable(); });
+      $('#sort').addEventListener('change', e => { state.sort = e.target.value; renderTable(); });
+
+      $('#btnPrint').addEventListener('click', () => window.print());
+      $('#btnExportCsv').addEventListener('click', exportCsv);
+      $('#btnExportJson').addEventListener('click', exportJson);
+      $('#fileImport').addEventListener('change', importJson);
+      $('#btnClearAll').addEventListener('click', clearAll);
+      $('#btnExportPdf').addEventListener('click', exportPdf);
+
+
+      render();
+    }
+
+    function refreshNameSelects() {
+      const names = store.names;
+      const paidBy = $('#paidBy');
+      paidBy.innerHTML = names.map((n, i) => `<option value="${i}">${n}</option>`).join('');
+      const filterPaidBy = $('#filterPaidBy');
+      filterPaidBy.innerHTML = `<option value="all">All</option>` + names.map((n, i) => `<option value="${i}">${n}</option>`).join('');
+    }
+
+    // ---------- Form ----------
+    function onSaveEntry() {
+      const date = $('#date').value;
+      const amountStr = $('#amount').value;
+      const paidBy = parseInt($('#paidBy').value, 10);
+      const category = $('#category').value.trim();
+      const desc = $('#desc').value.trim();
+      const editingId = $('#editingId').value;
+
+      if (!date) { alert('Please select date'); return; }
+      const amount = parseFloat(amountStr);
+      if (!amount || amount <= 0) { alert('Amount should be greater than 0'); return; }
+      if (Number.isNaN(paidBy)) { alert('Please select who paid'); return; }
+
+      const item = {
+        id: editingId || uid(),
+        date, // YYYY-MM-DD
+        amountPaise: toPaise(amountStr),
+        paidBy, // 0,1,2
+        category,
+        desc,
+        createdAt: editingId ? undefined : new Date().toISOString(),
+        updatedAt: editingId ? new Date().toISOString() : undefined
+      };
+
+      const list = store.expenses;
+      const existingIndex = list.findIndex(x => x.id === item.id);
+      if (existingIndex >= 0) { list[existingIndex] = { ...list[existingIndex], ...item }; }
+      else { list.push(item); }
+      store.expenses = list;
+
+      resetForm();
+      // switch filter month to the entry's month (handy)
+      state.filterMonth = item.date.slice(0, 7);
+      $('#monthPicker').value = state.filterMonth;
+      render();
+    }
+
+    function resetForm() {
+      $('#formEntry').reset();
+      $('#editingId').value = '';
+      $('#date').valueAsDate = new Date();
+    }
+
+    function saveNames() {
+      const n1 = ($('#f1').value || 'Friend 1').trim();
+      const n2 = ($('#f2').value || 'Friend 2').trim();
+      const n3 = ($('#f3').value || 'Friend 3').trim();
+      store.names = [n1, n2, n3];
+      refreshNameSelects();
+      render();
+    }
+
+    // ---------- Rendering ----------
+    function render() {
+      renderSummary();
+      renderBalances();
+      renderTable();
+      const updated = store.updatedAt ? new Date(store.updatedAt) : null;
+      $('#kpiUpdated').textContent = updated ? updated.toLocaleString() : '—';
+    }
+
+    function getFiltered() {
+      const list = store.expenses;
+      const month = state.filterMonth;
+      const s = state.search;
+      const pb = state.paidBy;
+      return list.filter(x => {
+        const inMonth = month ? x.date.slice(0, 7) === month : true;
+        const text = `${x.desc || ''} ${x.category || ''}`.toLowerCase();
+        const by = (pb === 'all') ? true : (String(x.paidBy) === String(pb));
+        const matched = !s || text.includes(s);
+        return inMonth && by && matched;
+      });
+    }
+
+    function renderSummary() {
+      const monthItems = getFiltered();
+      const total = monthItems.reduce((a, b) => a + b.amountPaise, 0);
+      const share = total > 0 ? Math.round(total / 3) : 0;
+      $('#kpiTotal').textContent = fmt.format(fromPaise(total));
+      $('#kpiShare').textContent = fmt.format(fromPaise(share));
+      $('#kpiCount').textContent = monthItems.length;
+    }
+
+    function renderBalances() {
+      const names = store.names;
+      const items = getFiltered();
+      const spent = [0, 0, 0];
+      for (const it of items) { spent[it.paidBy] += it.amountPaise; }
+      const total = spent.reduce((a, b) => a + b, 0);
+      const share = total > 0 ? Math.round(total / 3) : 0;
+      const bal = spent.map(x => x - share); // +ve = should receive, -ve = should pay
+
+      const wrap = $('#balances');
+      wrap.innerHTML = '';
+      bal.forEach((b, i) => {
+        const el = document.createElement('div');
+        el.className = 'balance-card';
+        el.innerHTML = `
+          <div class="name">${names[i]}</div>
+          <div class="muted" style="margin-top:2px">Spent: <strong>${fmt.format(fromPaise(spent[i]))}</strong></div>
+          <div style="margin-top:6px">Balance: <strong class="${b >= 0 ? 'pos' : 'neg'}">${fmt.format(fromPaise(b))}</strong>
+            <span class="tag">${b >= 0 ? 'is owed' : 'owes'}</span>
+          </div>
+        `;
+        wrap.appendChild(el);
+      });
+
+      // Settlement suggestions
+      const settlements = settleBalances(bal, store.names);
+      const box = $('#settlements');
+      if (total === 0 || items.length === 0) { box.innerHTML = '<em class="muted">No data for selected month.</em>'; return; }
+      if (settlements.length === 0) { box.innerHTML = '<span class="badge">Everyone is settled ✔️</span>'; return; }
+      const lines = settlements.map(s => `<div>• <strong>${s.from}</strong> → <strong>${s.to}</strong>: <span class="mono">${fmt.format(fromPaise(s.amount))}</span></div>`).join('');
+      box.innerHTML = `<div style="margin-top:6px"><strong>Suggested Settlements:</strong><div style="margin-top:4px">${lines}</div></div>`;
+    }
+
+    function settleBalances(balances, names) {
+      // balances: [b1,b2,b3] (paise); +ve = to receive, -ve = to pay
+      const creditors = [], debtors = [];
+      balances.forEach((b, i) => { if (b > 0) creditors.push({ i, amt: b }); else if (b < 0) debtors.push({ i, amt: -b }); });
+      // Greedy match biggest with biggest
+      creditors.sort((a, b) => b.amt - a.amt);
+      debtors.sort((a, b) => b.amt - a.amt);
+      const tx = [];
+      let ci = 0, di = 0;
+      while (ci < creditors.length && di < debtors.length) {
+        const give = Math.min(creditors[ci].amt, debtors[di].amt);
+        if (give > 0) { // Only add non-zero transactions
+            tx.push({ from: names[debtors[di].i], to: names[creditors[ci].i], amount: give });
+        }
+        creditors[ci].amt -= give;
+        debtors[di].amt -= give;
+        if (Math.round(creditors[ci].amt) === 0) ci++;
+        if (Math.round(debtors[di].amt) === 0) di++;
+      }
+      return tx;
+    }
+
+    function renderTable() {
+      const tbody = $('#tbody');
+      tbody.innerHTML = '';
+      let items = getFiltered();
+
+      const sort = state.sort;
+      items.sort((a, b) => {
+        if (sort === 'date-desc') return a.date < b.date ? 1 : -1;
+        if (sort === 'date-asc') return a.date > b.date ? 1 : -1;
+        if (sort === 'amount-desc') return b.amountPaise - a.amountPaise;
+        if (sort === 'amount-asc') return a.amountPaise - b.amountPaise;
+        return 0;
+      });
+
+      const names = store.names;
+      const tpl = document.getElementById('rowTemplate');
+      for (const it of items) {
+        const row = tpl.content.cloneNode(true);
+        row.querySelector('[data-col="date"]').textContent = it.date;
+        row.querySelector('[data-col="desc"]').textContent = it.desc || '—';
+        row.querySelector('[data-col="cat"]').textContent = it.category || '—';
+        row.querySelector('[data-col="by"]').textContent = names[it.paidBy] || '—';
+        row.querySelector('[data-col="amt"]').textContent = fmt.format(fromPaise(it.amountPaise));
+
+        const actions = document.createElement('div');
+        actions.className = 'btnbar';
+        const bEdit = document.createElement('button'); bEdit.className = 'btn'; bEdit.textContent = '✏️ Edit'; bEdit.addEventListener('click', () => editItem(it.id));
+        const bDel = document.createElement('button'); bDel.className = 'btn danger'; bDel.textContent = '🗑️ Delete'; bDel.addEventListener('click', () => deleteItem(it.id));
+        actions.appendChild(bEdit); actions.appendChild(bDel);
+        row.querySelector('[data-col="actions"]').appendChild(actions);
+
+        tbody.appendChild(row);
+      }
+    }
+
+    function editItem(id) {
+      const it = store.expenses.find(x => x.id === id);
+      if (!it) return;
+      $('#date').value = it.date;
+      $('#amount').value = (it.amountPaise / 100).toFixed(2);
+      $('#paidBy').value = String(it.paidBy);
+      $('#category').value = it.category || '';
+      $('#desc').value = it.desc || '';
+      $('#editingId').value = it.id;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function deleteItem(id) {
+      if (!confirm('Delete this entry?')) return;
+      const list = store.expenses.filter(x => x.id !== id);
+      store.expenses = list;
+      render();
+    }
+
+    // ---------- Export / Import ----------
+    function exportCsv() {
+      const items = getFiltered();
+      const names = store.names;
+      const rows = [['Date', 'Description', 'Category', 'Paid By', 'Amount (₹)']]
+        .concat(items.map(x => [x.date, (x.desc || '').replaceAll('\n', ' '), (x.category || '').replaceAll('\n', ' '), names[x.paidBy] || '', (x.amountPaise / 100).toFixed(2)]));
+      const csv = rows.map(r => r.map(cell => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      const m = state.filterMonth || 'all';
+      a.download = `expenses_${m}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function exportJson() {
+      const data = { names: store.names, expenses: store.expenses };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'expenses_backup.json'; a.click(); URL.revokeObjectURL(a.href);
+    }
+
+    async function importJson(evt) {
+      const file = evt.target.files[0]; if (!file) return;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if (!data || !Array.isArray(data.expenses) || !Array.isArray(data.names) || data.names.length !== 3) {
+          alert('Invalid file'); return;
+        }
+        if (!confirm('This will replace current data. Continue?')) return;
+        localStorage.setItem('friendNames', JSON.stringify(data.names));
+        localStorage.setItem('expenses', JSON.stringify(data.expenses));
+        localStorage.setItem('updatedAt', new Date().toISOString());
+        // Reload state
+        $('#f1').value = data.names[0]; $('#f2').value = data.names[1]; $('#f3').value = data.names[2];
+        refreshNameSelects();
+        render();
+      } catch (err) {
+        console.error(err); alert('Failed to import file');
+      } finally {
+        evt.target.value = '';
+      }
+    }
+
+    function clearAll() {
+      if (!confirm('This will permanently delete ALL data. Continue?')) return;
+      localStorage.removeItem('friendNames');
+      localStorage.removeItem('expenses');
+      localStorage.removeItem('updatedAt');
+      // reset
+      document.getElementById('formEntry').reset();
+      document.getElementById('f1').value = 'Friend 1';
+      document.getElementById('f2').value = 'Friend 2';
+      document.getElementById('f3').value = 'Friend 3';
+      saveNames();
+    }
+
+    // ---------- Start ----------
+    init();
+  </script>
+</body>
+</html>
